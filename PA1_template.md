@@ -2,19 +2,22 @@
 
 
 ## Loading and preprocessing the data
-```{r libraries}
+
+```r
 library(ggplot2)
 library(chron)
 ```
 Verify if dataset exists:
-```{r verifyDataset}
+
+```r
 if(!file.exists("./activity.zip")){
     download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",
                   "activity.zip")
 }
 ```
 Unpack the dataset:
-```{r getData}
+
+```r
 if(!file.exists("./data/activity.csv")){
     if(file.exists("activity.zip")){
         unzip("activity.zip", exdir="data")
@@ -24,40 +27,64 @@ if(!file.exists("./data/activity.csv")){
 }
 ```
 Load the data:
-```{r loaddata}
+
+```r
 dataAct<-read.csv("./data/activity.csv")
 ```
 Summarize the dataset:
-```{r summary}
+
+```r
 summary(dataAct)
+```
+
+```
+##      steps               date          interval   
+##  Min.   :  0.0   2012-10-01:  288   Min.   :   0  
+##  1st Qu.:  0.0   2012-10-02:  288   1st Qu.: 589  
+##  Median :  0.0   2012-10-03:  288   Median :1178  
+##  Mean   : 37.4   2012-10-04:  288   Mean   :1178  
+##  3rd Qu.: 12.0   2012-10-05:  288   3rd Qu.:1766  
+##  Max.   :806.0   2012-10-06:  288   Max.   :2355  
+##  NA's   :2304    (Other)   :15840
 ```
 
 ## What is mean total number of steps taken per day?
 
 The total of steps by day:
-```{r totalsteps}
+
+```r
 stepsbyday<-tapply(dataAct$steps, dataAct$date, sum)
 
 head(stepsbyday)
 ```
+
+```
+## 2012-10-01 2012-10-02 2012-10-03 2012-10-04 2012-10-05 2012-10-06 
+##         NA        126      11352      12116      13294      15420
+```
 The histogram of the steps by day:
-```{r plot1, fig.align='center'}
+
+```r
 hist(stepsbyday, xlab="Steps by day", main="Histogram", labels=T)
 ```
 
+<img src="figure/plot1.png" title="plot of chunk plot1" alt="plot of chunk plot1" style="display: block; margin: auto;" />
+
 Calculate the mean and median:
-```{r mm}
+
+```r
 mu<-mean(stepsbyday, na.rm=T)
 md<-median(stepsbyday, na.rm=T)
 ```
 
-The mean is: `r format(mu,6)` *Steps by day*  
-The median is: `r format(md,6)` *Steps by day*
+The mean is: 10766 *Steps by day*  
+The median is: 10765 *Steps by day*
 
 ## What is the average daily activity pattern?
 
 Plotting the average daily activity:
-```{r plot2, fig.align='center', fig.width=10}
+
+```r
 qplot(interval, steps, data = dataAct, 
              geom = "line", 
              ylab="Steps", 
@@ -66,15 +93,23 @@ qplot(interval, steps, data = dataAct,
              stat="summary", fun.y = "mean")
 ```
 
+```
+## Warning: Removed 2304 rows containing missing values (stat_summary).
+```
+
+<img src="figure/plot2.png" title="plot of chunk plot2" alt="plot of chunk plot2" style="display: block; margin: auto;" />
+
 Calculate the average daily activity
-```{r maxIn}
+
+```r
 averageSteps<-aggregate(steps~interval, FUN=mean, data=dataAct)
 maxIndex<-which.max(averageSteps$steps)
 val<-averageSteps[maxIndex,]
 ```
 
-The interval `r val$interval` has the maximum average of steps (`r val$steps`): 
-```{r plot3, fig.align='center', fig.width=10}
+The interval 835 has the maximum average of steps (206.1698): 
+
+```r
 plot1<-qplot(interval, steps, data = averageSteps, 
              geom = "line", 
              ylab="Steps", 
@@ -84,10 +119,13 @@ plot1<-qplot(interval, steps, data = averageSteps,
 plot1+geom_segment(aes(x = val$interval, y = 0, xend = val$interval, yend = val$steps), colour = "red" )
 ```
 
+<img src="figure/plot3.png" title="plot of chunk plot3" alt="plot of chunk plot3" style="display: block; margin: auto;" />
+
 ## Imputing missing values
 
 Calculate the number of NAs values:
-```{r naValues}
+
+```r
 naVal<-data.frame(steps=0, date=0, interval=0)
 
 naVal$steps<-length(which(is.na(dataAct$steps)))
@@ -97,16 +135,31 @@ naVal$date<-length(which(is.na(dataAct$date)))
 naVal$interval<-length(which(is.na(dataAct$interval)))
 ```
 
-The number of rows with NAs from steps column is `r naVal$steps`  
-The number of rows with NAs from interval column is `r naVal$date`  
-The number of rows with NAs from date column is `r naVal$interval`
+The number of rows with NAs from steps column is 2304  
+The number of rows with NAs from interval column is 0  
+The number of rows with NAs from date column is 0
 
 Filling the NA values from Steps columns
-```{r fillNas}
+
+```r
 #Backuo the dataset
 dataActOld<-dataAct
 missValues<-dataAct[is.na(dataAct$steps), ]
 summary(missValues)
+```
+
+```
+##      steps              date        interval   
+##  Min.   : NA    2012-10-01:288   Min.   :   0  
+##  1st Qu.: NA    2012-10-08:288   1st Qu.: 589  
+##  Median : NA    2012-11-01:288   Median :1178  
+##  Mean   :NaN    2012-11-04:288   Mean   :1178  
+##  3rd Qu.: NA    2012-11-09:288   3rd Qu.:1766  
+##  Max.   : NA    2012-11-10:288   Max.   :2355  
+##  NA's   :2304   (Other)   :576
+```
+
+```r
 missDate<-sort(as.Date(as.character(unique(missValues$date))))
 missInterval<-unique(missValues$interval)
 
@@ -174,39 +227,42 @@ for(date in missDate){
         }
     }
 }
-
-
 ```
 
 Saving the new dataset
-```{r}
+
+```r
 write.csv(dataAct, "./data/activity_without_NA.csv")
 ```
 
 Plotting the new histogram
-```{r plot4, fig.align='center'}
+
+```r
 stepsbyday2<-tapply(dataAct$steps, dataAct$date, sum)
 hist(stepsbyday2, xlab="Steps by day", main="Histogram", labels=T)
 ```
 
-Calculate the new mean and median:
-```{r mm2}
+<img src="figure/plot4.png" title="plot of chunk plot4" alt="plot of chunk plot4" style="display: block; margin: auto;" />
 
+Calculate the new mean and median:
+
+```r
 mu2<-mean(stepsbyday2)
 md2<-median(stepsbyday2)
 ```
 
-The new mean is: `r format(mu2, 6)` *Steps by day*  
-The new median is: `r format(md2, 6)` *Steps by day*  
+The new mean is: 10411 *Steps by day*  
+The new median is: 10571 *Steps by day*  
 
 The difference between the new and old mean/median is:  
-*Mean: `r mu2-mu`*  
-*Median: `r md2-md`*  
+*Mean: -355.2256*  
+*Median: -194*  
 
 *As can be seen, theses values differ from the estimates of the dataset with NA's values.*  
   
 
-```{r plot5, fig.align='center', fig.width=10}
+
+```r
 stepsbyact<-tapply(dataAct$steps, dataAct$date, sum)
 plot1<-qplot(interval, steps, data = dataAct, 
              geom = "line", 
@@ -217,22 +273,43 @@ plot1<-qplot(interval, steps, data = dataAct,
 plot1+geom_line(data=dataActOld, colour="blue", stat="summary", fun.y = "mean")
 ```
 
+```
+## Warning: Removed 2304 rows containing missing values (stat_summary).
+```
+
+<img src="figure/plot5.png" title="plot of chunk plot5" alt="plot of chunk plot5" style="display: block; margin: auto;" />
+
 *The main impact of imputing missing data is on the mean value of the steps by day, where these values was estimated by mean of the steps in the neighbor date. In the graph the blue line is the time seris from the dataset with NA's values*
 
 ## Are there differences in activity patterns between weekdays and weekends?
 Setting the weekdays and the weekends
-```{r setweek}
+
+```r
 dataAct$week<-factor(is.weekend(dataAct$date), levels=c(T, F), labels=c("Weekend", "Weekday"))
 summary(dataAct)
 ```
+
+```
+##      steps               date          interval         week      
+##  Min.   :  0.0   2012-10-01:  288   Min.   :   0   Weekend: 4608  
+##  1st Qu.:  0.0   2012-10-02:  288   1st Qu.: 589   Weekday:12960  
+##  Median :  0.0   2012-10-03:  288   Median :1178                  
+##  Mean   : 36.1   2012-10-04:  288   Mean   :1178                  
+##  3rd Qu.: 27.5   2012-10-05:  288   3rd Qu.:1766                  
+##  Max.   :806.0   2012-10-06:  288   Max.   :2355                  
+##                  (Other)   :15840
+```
     
 Plotting the average number of step by weekend
-```{r plot6, fig.align='center', fig.width=10}
+
+```r
 library(lattice)
 xyplot(steps ~ interval | week,        
        data=dataAct, 
        type = "a", ylab="Steps", xlab="Interval", layout=c(1,2), ylim=c(0,250))
 ```
+
+<img src="figure/plot6.png" title="plot of chunk plot6" alt="plot of chunk plot6" style="display: block; margin: auto;" />
 
 *As can be seen, the activity patterns between weekdays and weekends values are different*
 
